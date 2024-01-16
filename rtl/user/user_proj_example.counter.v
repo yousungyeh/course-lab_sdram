@@ -96,11 +96,18 @@ module user_proj_example #(
 
     reg ctrl_in_valid_q;
     
+    reg [22:0] next_addr, saved_addr;
+    wire [22:0] user_addr;
+    reg next;
+    wire successive;
+    
     // WB MI A
     
     assign valid = wbs_stb_i && wbs_cyc_i;
-    assign ctrl_in_valid = wbs_we_i ? valid : ~ctrl_in_valid_q && valid;
-    assign wbs_ack_o = (wbs_we_i) ? ~ctrl_busy && valid : ctrl_out_valid; 
+    //assign ctrl_in_valid = wbs_we_i ? valid : ~ctrl_in_valid_q && valid;
+    assign ctrl_in_valid = wbs_we_i ? valid : ~ctrl_in_valid_q && valid && !ctrl_busy;
+    //assign wbs_ack_o = (wbs_we_i) ? ~ctrl_busy && valid : ctrl_out_valid;
+    assign wbs_ack_o = (wbs_we_i) ? ~ctrl_busy && valid : ctrl_out_valid && valid && successive;
     assign bram_mask = wbs_sel_i & {4{wbs_we_i}};
     assign ctrl_addr = wbs_adr_i[22:0];
 
@@ -125,10 +132,108 @@ module user_proj_example #(
         else begin
             if (~wbs_we_i && valid && ~ctrl_busy && ctrl_in_valid_q == 1'b0)
                 ctrl_in_valid_q <= 1'b1;
-            else if (ctrl_out_valid)
+            else if (ctrl_out_valid || ~ctrl_busy)
                 ctrl_in_valid_q <= 1'b0;
         end
     end
+
+/*  Prefetch Address */
+/*
+    wire [22:0] user_addr;
+	assign successive = ((last_in_addr - ctrl_addr)==4)? 1 : 0;
+	assign user_addr = (next_in && valid && !wbs_we_i )? next_addr : ctrl_addr;
+	
+	always@(posedge clk)begin
+		if(rst) begin
+			next_addr <= 0;
+			next_in <= 0;
+			last_in_addr <= 0;
+		end else begin
+			next_addr <= (ctrl_in_valid && !wbs_we_i)? user_addr + 4 : next_addr;
+			next_in <= (ctrl_in_valid_q)? 1 : 0;
+			last_in_addr <= (ctrl_in_valid) ? user_addr : last_in_addr;
+		end
+	end
+	*/
+	
+	// next pull high when controller is in IDLE(6), and able to get next address.
+	assign user_addr = (next && valid && !wbs_we_i )? next_addr : ctrl_addr;
+	assign successive = ((saved_addr - ctrl_addr) == 4)? 1 : 0;
+	
+	always@(posedge clk)begin
+		if(rst) begin
+			next_addr <= 0;
+			next <= 0;
+			saved_addr <= 0;
+		end else begin
+			next_addr <= (ctrl_in_valid)? user_addr + 4 : next_addr;
+			next <= (ctrl_in_valid_q)? 1 : 0;
+			saved_addr <= (ctrl_in_valid) ? user_addr : saved_addr;
+		end
+	end
+		
+/*  Prefetch Cache Test */
+/*	reg [31:0] cache_dat_o;
+	wire [31:0] sdram_dat_o;
+	reg [31:0] data_cache [7:0];
+	reg [22:0] saved_in_addr [7:0];
+	reg [22:0] user_addr;
+	wire cache_hit;
+	wire out_valid, cache_out_valid;
+	
+	assign wbs_dat_o = (cache_hit)? cache_dat_o : sdram_dat_o;
+	assign out_valid = (cache_hit)? cache_out_valid : ctrl_out_valid;
+	assign user_addr = ctrl_addr;
+	
+	// cache hit or not
+	always@(*)begin
+		case (ctrl_addr)
+			saved_in_addr[0]: begin
+				cache_hit = 1;
+				cache_dat_o = data_cache[0];
+				end
+			saved_in_addr[1]: begin
+				cache_hit = 1;
+				cache_dat_o = data_cache[1];
+				end
+			saved_in_addr[2]: begin
+				cache_hit = 1;
+				cache_dat_o = data_cache[2];
+				end
+			saved_in_addr[3]: begin
+				cache_hit = 1;
+				cache_dat_o = data_cache[3];
+				end
+			saved_in_addr[4]: begin
+				cache_hit = 1;
+				cache_dat_o = data_cache[4];
+				end
+			saved_in_addr[5]: begin
+				cache_hit = 1;
+				cache_dat_o = data_cache[5];
+				end
+			saved_in_addr[6]: begin
+				cache_hit = 1;
+				cache_dat_o = data_cache[6];
+				end
+			saved_in_addr[7]: begin
+				cache_hit = 1;
+				cache_dat_o = data_cache[7];
+				end
+			default: begin
+				cache_hit = 0;
+				end
+		endcase
+	end
+	
+	always@(posedge clk)begin
+		if(rst)
+			cache_out_valid <= 0;
+		else begin
+			cache_out_valid <= (cache_hit)? 1:0;
+		end	
+	end
+*/
 
     sdram_controller user_sdram_controller (
         .clk(clk),
@@ -145,10 +250,11 @@ module user_proj_example #(
         .sdram_dqi(d2c_data),
         .sdram_dqo(c2d_data),
 
-        .user_addr(ctrl_addr),
+        .user_addr(user_addr),
         .rw(wbs_we_i),
         .data_in(wbs_dat_i),
         .data_out(wbs_dat_o),
+        //.data_out(sdram_dat_o),
         .busy(ctrl_busy),
         .in_valid(ctrl_in_valid),
         .out_valid(ctrl_out_valid)

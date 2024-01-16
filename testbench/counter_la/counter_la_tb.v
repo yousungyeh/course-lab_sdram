@@ -140,7 +140,7 @@ module counter_la_tb;
 		$dumpvars(0, counter_la_tb);
 
 		// Repeat cycles of 1000 clock edges as needed to complete testbench
-		repeat (250) begin
+		repeat (500) begin
 			repeat (1000) @(posedge clock);
 			// $display("+1000 cycles");
 		end
@@ -156,14 +156,19 @@ module counter_la_tb;
 
 	initial begin
 		wait(checkbits == 16'hAB40);
-		$display("LA Test 1 started");
-		//wait(checkbits == 16'hAB41);
+		$display("LA Test 1 started, time: %t", $time);
 
-		wait(checkbits == 16'h2233);
-		$display("Call function adder() in User Project BRAM (mprjram, 0x38000000) return value passed, 0x%x", checkbits);		
+		wait(checkbits == 16'h003E);
+		$display("Call function matmul() in User Project BRAM (mprjram, 0x38000000) return value passed, 0x%x, time: %t", checkbits, $time);
+		wait(checkbits == 16'h0044);
+		$display("Call function matmul() in User Project BRAM (mprjram, 0x38000000) return value passed, 0x%x, time: %t", checkbits, $time);
+		wait(checkbits == 16'h004A);
+		$display("Call function matmul() in User Project BRAM (mprjram, 0x38000000) return value passed, 0x%x, time: %t", checkbits, $time);
+		wait(checkbits == 16'h0050);
+		$display("Call function matmul() in User Project BRAM (mprjram, 0x38000000) return value passed, 0x%x, time: %t", checkbits, $time);		
 
 		wait(checkbits == 16'hAB51);
-		$display("LA Test 2 passed");
+		$display("LA Test 2 passed, time: %t", $time);
 		#10000;
 		$finish;
 	end

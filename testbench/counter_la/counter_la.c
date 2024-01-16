@@ -19,7 +19,7 @@
 #include <defs.h>
 #include <stub.c>
 
-extern int adder();
+extern int* matmul();
 
 // --------------------------------------------------------
 
@@ -110,27 +110,37 @@ void main()
 	reg_la2_oenb = reg_la2_iena = 0x00000000;    // [95:64]
 	reg_la3_oenb = reg_la3_iena = 0x00000000;    // [127:96]
 
-	// Flag start of the test 
-	reg_mprj_datal = 0xAB400000;
-
 	// Set Counter value to zero through LA probes [63:32]
 	reg_la1_data = 0x00000000;
 
 	// Configure LA probes from [63:32] as inputs to disable counter write
 	reg_la1_oenb = reg_la1_iena = 0x00000000;    
 
-/*
-	while (1) {
-		if (reg_la0_data_in > 0x1F4) {
-			reg_mprj_datal = 0xAB410000;
-			break;
-		}
-	}
-*/	
-	reg_mprj_datal = adder() << 16;	
+	// Flag start of the test 
+	reg_mprj_datal = 0xAB400000;
+	
+	int *tmp = matmul();
+	reg_mprj_datal = *tmp << 16;
+	reg_mprj_datal = *(tmp+1) << 16;
+	reg_mprj_datal = *(tmp+2) << 16;
+	reg_mprj_datal = *(tmp+3) << 16;
+	//reg_mprj_datal = *(tmp+4) << 16;
+	//reg_mprj_datal = *(tmp+5) << 16;
+	//reg_mprj_datal = *(tmp+6) << 16;
+	//reg_mprj_datal = *(tmp+7) << 16;
+	//reg_mprj_datal = *(tmp+8) << 16;
+	//reg_mprj_datal = *(tmp+9) << 16;
+	//reg_mprj_datal = *(tmp+10) << 16;
+	//reg_mprj_datal = *(tmp+11) << 16;	
+	//reg_mprj_datal = *(tmp+12) << 16;
+	//reg_mprj_datal = *(tmp+13) << 16;
+	//reg_mprj_datal = *(tmp+14) << 16;
+	//reg_mprj_datal = *(tmp+15) << 16;
+	
+	reg_mprj_datal = 0xAB510000;	
 
 	//print("\n");
 	//print("Monitor: Test 1 Passed\n\n");	// Makes simulation very long!
-	reg_mprj_datal = 0xAB510000;
+	//reg_mprj_datal = *(tmp+9) << 16;
 }
 
